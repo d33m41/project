@@ -46,7 +46,7 @@ button{font-family:inherit; cursor:pointer;}
   *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
 }
 
-/* layout shell */
+/* ---------- layout shell ---------- */
 .topbar{
   position:sticky; top:0; z-index:30;
   display:flex; align-items:center; justify-content:space-between;
@@ -96,7 +96,7 @@ main{max-width:1180px; margin:0 auto; padding:36px 28px 120px;}
 .btn.small{padding:6px 12px; font-size:12px;}
 .btn[disabled]{opacity:.4; cursor:not-allowed; transform:none; box-shadow:none;}
 
-/* index card (signature element) */
+/* ---------- index card (signature element) ---------- */
 .card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:22px;}
 .card{
   position:relative; background:var(--card); border:1px solid var(--line);
@@ -135,7 +135,7 @@ main{max-width:1180px; margin:0 auto; padding:36px 28px 120px;}
 .cap-bar i{display:block; height:100%; background:var(--brass);}
 .card-foot{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
 
-/* panels / forms */
+/* ---------- panels / forms ---------- */
 .panel{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:24px; box-shadow:0 1px 0 rgba(22,41,77,0.04);}
 .two-col{display:grid; grid-template-columns:1.1fr 0.9fr; gap:24px;}
 @media (max-width:880px){ .two-col{grid-template-columns:1fr;} }
@@ -168,7 +168,7 @@ td{padding:9px 6px; border-bottom:1px solid var(--line);}
 .search-row{display:flex; gap:10px; margin-bottom:22px; flex-wrap:wrap;}
 .search-row input{flex:1; min-width:200px;}
 
-/* auth */
+/* ---------- auth ---------- */
 .auth-wrap{display:flex; justify-content:center; padding:60px 20px;}
 .auth-card{width:100%; max-width:420px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:32px; box-shadow:var(--shadow); position:relative;}
 .auth-card::before{content:""; position:absolute; top:-1px; left:14px; right:14px; height:9px; background-image:radial-gradient(circle at 9px 0, var(--paper) 5.5px, transparent 6px); background-size:18px 9px; background-repeat:repeat-x;}
@@ -179,19 +179,19 @@ td{padding:9px 6px; border-bottom:1px solid var(--line);}
 .demo-box b{color:var(--ink);}
 .err-msg{background:var(--danger-bg); color:var(--danger); font-size:12.5px; padding:9px 12px; border-radius:var(--radius); margin-bottom:14px;}
 
-/* modal */
+/* ---------- modal ---------- */
 .modal-bg{position:fixed; inset:0; background:rgba(22,41,77,0.45); display:flex; align-items:flex-start; justify-content:center; padding:48px 20px; z-index:100; overflow-y:auto; animation:fadeIn .15s ease;}
 @keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
 .modal{width:100%; max-width:560px; background:var(--card); border-radius:var(--radius); padding:28px; position:relative; box-shadow:0 30px 60px -20px rgba(0,0,0,0.4);}
 .modal h2{margin-top:0; font-size:20px;}
 .modal-close{position:absolute; top:18px; right:18px; background:none; border:none; font-size:20px; color:var(--ink-soft); line-height:1;}
 
-/* toast */
+/* ---------- toast ---------- */
 .toast-stack{position:fixed; bottom:22px; left:22px; z-index:200; display:flex; flex-direction:column; gap:8px;}
 .toast{background:var(--ink); color:var(--paper); padding:11px 16px; border-radius:var(--radius); font-size:13px; border-left:4px solid var(--brass); box-shadow:var(--shadow); animation:slideIn .2s ease;}
 @keyframes slideIn{from{opacity:0; transform:translateX(-12px);} to{opacity:1; transform:translateX(0);}}
 
-/* notification queue widget */
+/* ---------- notification queue widget ---------- */
 .queue-fab{
   position:fixed; bottom:22px; right:22px; z-index:150;
   background:var(--ink); color:var(--paper); border:1px solid var(--brass);
@@ -231,6 +231,20 @@ td{padding:9px 6px; border-bottom:1px solid var(--line);}
 
 <script src="api-client.js"></script>
 <script>
+/* =========================================================
+   QUORUM — wired to a real backend via api-client.js (Api.*).
+   db.events / db.registrations / db.jobs are now just a LOCAL
+   CACHE of the latest server response, refreshed after every
+   mutating call. Nothing here is the source of truth anymore.
+
+   Field-name assumptions (adjust normalizeEvent/normalizeRegistration
+   below if your backend uses different keys):
+   - events:        { id, organizer_id, title, description, starts_at,
+                       ends_at, location, capacity, status, created_at,
+                       confirmed_count, waitlist_count, my_registration }
+   - registrations: { id, event_id, user_id, status, position, registered_at }
+   ========================================================= */
+
 const uid = (p) => p + '-' + Math.random().toString(36).slice(2,9);
 const nowISO = () => new Date().toISOString();
 function fmtDate(iso){
@@ -238,17 +252,17 @@ function fmtDate(iso){
   return d.toLocaleString('bg-BG', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
 }
 
-/* local cache (populated from backend responses) */
+/* ---------------- local cache (populated from backend responses) ---------------- */
 let db = {
   events: [],
   registrations: [], // for a student: their own regs (from /registrations/me)
   jobs: [],
 };
 
-let session = { user: null }; 
+let session = { user: null }; // set from Api.login()/Api.register() response
 let view = { route:'auth', eventId:null, tab:'browse', orgTab:'events' };
 
-/*  normalization: backend JSON -> internal shape  */
+/* ---------------- normalization: backend JSON -> internal shape ---------------- */
 function normalizeEvent(e){
   return {
     id: e.id,
@@ -263,6 +277,7 @@ function normalizeEvent(e){
     createdAt: e.created_at ?? e.createdAt,
     confirmedCount: e.confirmed_count ?? e.confirmedCount ?? 0,
     waitlistCount: e.waitlist_count ?? e.waitlistCount ?? 0,
+    // if backend includes the current user's own registration inline on the event object:
     myRegistration: e.my_registration ? normalizeRegistration(e.my_registration) : null,
   };
 }
@@ -276,6 +291,9 @@ function normalizeRegistration(r){
     registeredAt: r.registered_at ?? r.registeredAt,
   };
 }
+// organizer-facing registration row: also carries the student's name/email.
+// Adjust the fallbacks below to match whatever shape /events/{id}/registrations
+// and /events/{id}/waitlist actually return (nested user object vs flat fields).
 function normalizeRegistrationWithUser(r){
   const base = normalizeRegistration(r);
   const u = r.user || {};
@@ -286,10 +304,10 @@ function normalizeRegistrationWithUser(r){
   };
 }
 
-/* domain read-helpers (now just read from the cache) */
+/* ---------------- domain read-helpers (now just read from the cache) ---------------- */
 function eventById(id){ return db.events.find(e=>e.id===id); }
 
-/* data loading (reads from backend, refills the cache) */
+/* ---------------- data loading (reads from backend, refills the cache) ---------------- */
 async function loadEvents(){
   try{
     const raw = await Api.listEvents({ search: view.search, date: view.dateFilter });
@@ -314,7 +332,7 @@ async function loadInitialData(){
   }
 }
 
-/* mutations (all go through the backend now) */
+/* ---------------- mutations (all go through the backend now) ---------------- */
 async function registerForEvent(eventId){
   try{
     const raw = await Api.registerForEvent(eventId);
@@ -386,15 +404,19 @@ async function cancelEvent(id){
   renderApp();
 }
 
-/* auth */
+/* ---------------- auth ---------------- */
 async function login(email, password){
-  const data = await Api.login({ email, password });
+  const data = await Api.login({ email, password }); // throws on 401/422 — caller catches
   session.user = data.user;
   view.route = session.user.role === 'organizer' ? 'organizer' : 'student';
 }
-async function registerStudent(name, email, password){
-  await Api.register({ name, email, password });
-  // спецификацията: POST /register не логва автоматично — влизаме веднага след успешна регистрация
+async function registerAccount(name, email, password, role){
+  // ВНИМАНИЕ: това праща role='organizer' до бекенда, ако е избрано.
+  // Реалният бекенд трябва сам да реши дали да го приеме — спецификацията
+  // препоръчва организаторски акаунти да се създават само от администратор/seed,
+  // не свободно от всеки през /register. Ако бекендът игнорира полето role
+  // и винаги създава студент, това е очаквано и правилно поведение от негова страна.
+  await Api.register({ name, email, password, role });
   await login(email, password);
 }
 async function logout(){
@@ -406,7 +428,7 @@ async function logout(){
   renderApp();
 }
 
-/* toasts */
+/* ---------------- toasts ---------------- */
 function toast(msg){
   const stack = document.getElementById('toastStack');
   const el = document.createElement('div');
@@ -416,7 +438,7 @@ function toast(msg){
   setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, 3600);
 }
 
-/* notification queue panel */
+/* ---------------- notification queue panel ---------------- */
 const jobLabel = {
   RegistrationConfirmed:'Регистрация потвърдена',
   RegistrationWaitlisted:'Добавен в чакащ списък',
@@ -479,7 +501,7 @@ function renderQueue(){
     }).join('');
 }
 
-/* modal */
+/* ---------------- modal ---------------- */
 function closeModal(){
   const ex = document.getElementById('modalRoot');
   if(ex) ex.remove();
@@ -494,7 +516,7 @@ function openModal(html){
   document.body.appendChild(wrap);
 }
 
-/* views: AUTH */
+/* ---------------- views: AUTH ---------------- */
 function renderAuth(){
   const tab = view.authTab || 'login';
   return `
@@ -521,8 +543,15 @@ function renderAuth(){
         <div class="field"><label>Име</label><input id="regName" placeholder="Име и фамилия"></div>
         <div class="field"><label>Имейл</label><input id="regEmail" type="email" placeholder="име@school.edu"></div>
         <div class="field"><label>Парола</label><input id="regPass" type="password" placeholder="мин. 4 символа"></div>
-        <button class="btn" style="width:100%; justify-content:center;" onclick="doRegister()">Създай студентски акаунт</button>
-        <p class="hint" style="margin-top:14px;">Регистрацията през този формуляр винаги създава роля „студент“ — съгласно правилото от спецификацията.</p>
+        <div class="field">
+          <label>Роля</label>
+          <select id="regRole">
+            <option value="student">Студент</option>
+            <option value="organizer">Организатор</option>
+          </select>
+        </div>
+        <p class="hint" style="margin-top:-10px;">Организаторската опция е за демонстрация — реалният бекенд трябва сам да реши дали изобщо да позволи саморегистрация с тази роля.</p>
+        <button class="btn" style="width:100%; justify-content:center;" onclick="doRegister()">Създай акаунт</button>
       `}
     </div>
   </div>`;
@@ -543,10 +572,11 @@ async function doRegister(){
   const name = document.getElementById('regName').value.trim();
   const email = document.getElementById('regEmail').value.trim();
   const pass = document.getElementById('regPass').value;
+  const role = document.getElementById('regRole').value; // 'student' | 'organizer'
   if(!name || !email || pass.length<4){ view.authError='Попълни всички полета (паролата — мин. 4 символа).'; renderApp(); return; }
   view.authError = null;
   try{
-    await registerStudent(name, email, pass);
+    await registerAccount(name, email, pass, role);
     await loadInitialData();
   }catch(err){
     view.authError = err.message || 'Регистрацията беше неуспешна.';
@@ -554,7 +584,7 @@ async function doRegister(){
   renderApp();
 }
 
-/* topbar */
+/* ---------------- topbar ---------------- */
 function renderTopbar(){
   if(!session.user){
     return `<div class="topbar"><div class="brand"><span class="mark">QUORUM</span><span class="tag">Roster &amp; Notification Center</span></div></div>`;
@@ -586,7 +616,7 @@ async function goto(route, tab){
   renderApp();
 }
 
-/* STUDENT: browse */
+/* ---------------- STUDENT: browse ---------------- */
 function renderStudentBrowse(){
   const q = (view.search||'').toLowerCase();
   let evs = db.events.filter(e=>e.status==='PUBLISHED');
@@ -611,7 +641,7 @@ let searchDebounce = null;
 function onSearchInput(val){
   view.search = val;
   clearTimeout(searchDebounce);
-  searchDebounce = setTimeout(()=> loadEvents().then(renderApp), 350);
+  searchDebounce = setTimeout(()=> loadEvents().then(renderApp), 350); // избягва fetch на всяка буква
 }
 function renderEventCard(ev){
   const confirmed = ev.confirmedCount;
@@ -641,7 +671,7 @@ function renderEventCard(ev){
   </div>`;
 }
 
-/* STUDENT: my registrations */
+/* ---------------- STUDENT: my registrations ---------------- */
 function renderStudentMine(){
   const regs = db.registrations.filter(r=>r.userId===session.user.id)
     .sort((a,b)=> new Date(b.registeredAt)-new Date(a.registeredAt));
@@ -672,7 +702,7 @@ function renderStudentMine(){
   `}`;
 }
 
-/* ORGANIZER: events list */
+/* ---------------- ORGANIZER: events list ---------------- */
 function renderOrganizerEvents(){
   const mine = db.events.filter(e=>e.organizerId===session.user.id).sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt));
   return `
@@ -718,7 +748,7 @@ function confirmCancelEvent(id){
   `);
 }
 
-/* ORGANIZER: create / edit form */
+/* ---------------- ORGANIZER: create / edit form ---------------- */
 function openEventForm(id){
   const ev = id ? eventById(id) : null;
   openModal(`
@@ -756,7 +786,7 @@ function submitEventForm(id){
   if(id) updateEvent(id, data); else createEvent(data);
 }
 
-/* ORGANIZER: registrations + waitlist */
+/* ---------------- ORGANIZER: registrations + waitlist ---------------- */
 async function openRegistrations(eventId){
   const ev = eventById(eventId);
   openModal(`
@@ -795,7 +825,7 @@ async function openRegistrations(eventId){
   `);
 }
 
-/* ORGANIZER: preview as student */
+/* ---------------- ORGANIZER: preview as student ---------------- */
 function openPreview(eventId){
   const ev = eventById(eventId);
   const confirmed = ev.confirmedCount;
@@ -825,11 +855,11 @@ function renderEventCardPreview(ev, confirmed, isFull){
   </div>`;
 }
 
-/* helpers */
+/* ---------------- helpers ---------------- */
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function escapeAttr(s){ return escapeHtml(s); }
 
-/* main render */
+/* ---------------- main render ---------------- */
 function renderApp(skipScroll){
   const root = document.getElementById('root');
   let body = '';
@@ -842,6 +872,7 @@ function renderApp(skipScroll){
   }
   root.innerHTML = renderTopbar() + `<main>${body}</main>`;
   if(!skipScroll) window.scrollTo({top:0});
+  // restore focus to search input cursor position issue: skip (oninput handles re-render)
 }
 
 renderApp();
